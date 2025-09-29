@@ -3,3 +3,14 @@
 node_modules/
 .env
 .DS_Store
+# local patch artifacts
+app.js.prepatch*
+patch*.diff
+invoke_*.json
+*.zip
+build.zip
+src/app.js.backup-*
+src/package.json
+stepB.txt
+code_url.txt
+.ci-bump
