@@ -17,29 +17,43 @@ jobs:
         with:
           node-version: '18'
 
-      # Install AWS CLI (official action)
-      - name: Setup AWS CLI
-        uses: aws-actions/setup-aws-cli@v4
+      # -------- No marketplace actions below --------
+      # Install AWS CLI v2 (official bundle)
+      - name: Install AWS CLI v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+          unzip -q awscliv2.zip
+          sudo ./aws/install --update
+          aws --version
 
-      # Install PowerShell 7 (official action; default latest is fine)
-      - name: Setup PowerShell
-        uses: PowerShell/actions-setup-powershell@v2
+      # Install PowerShell 7 (adds MS repo then apt installs)
+      - name: Install PowerShell 7
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y wget apt-transport-https software-properties-common
+          wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update -y
+          sudo apt-get install -y powershell
+          pwsh -v
 
-      # Assume your deploy role via OIDC
+      # OIDC: assume your deploy role (this action has been resolving fine)
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::965276659689:role/GHActionsDeployRole
           aws-region: ap-south-1
 
-      # Quick diagnostics
       - name: Who am I in AWS?
         run: |
-          aws --version
-          pwsh -v
           aws sts get-caller-identity
 
       - name: Smoke payload
+        shell: bash
         run: |
           cat > invoke_event_body.json <<'JSON'
           {
@@ -51,6 +65,7 @@ jobs:
           }
           JSON
 
+      # Run your deploy script with PowerShell
       - name: Deploy
-        shell: pwsh
-        run: ./ops/deploy.ps1
+        shell: bash
+        run: pwsh -NoLogo -NoProfile -File ./ops/deploy.ps1
