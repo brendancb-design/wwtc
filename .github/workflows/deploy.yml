@@ -19,7 +19,7 @@ jobs:
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/GHActionsDeployRole
+          role-to-assume: arn:aws:iam::965276659689:role/GHActionsDeployRole
           aws-region: ap-south-1
       - name: Smoke payload
         run: |
