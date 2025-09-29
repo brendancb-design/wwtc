@@ -1,5 +1,4 @@
-﻿$yml = @"
-name: Deploy WWTC Mumbai
+﻿name: Deploy WWTC Mumbai
 on:
   push:
     branches: [ main ]
@@ -21,6 +20,7 @@ jobs:
       # Install AWS CLI v2
       - name: Install AWS CLI v2
         run: |
+          set -euo pipefail
           curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
           unzip -q awscliv2.zip
           sudo ./aws/install --update
@@ -29,6 +29,7 @@ jobs:
       # Install PowerShell 7
       - name: Install PowerShell 7
         run: |
+          set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y wget apt-transport-https software-properties-common
           wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
@@ -37,7 +38,7 @@ jobs:
           sudo apt-get install -y powershell
           pwsh -v
 
-      # Show OIDC token claims
+      # Show OIDC token claims (to confirm trust 'sub')
       - name: Show OIDC token claims (debug)
         uses: actions/github-script@v7
         with:
@@ -71,5 +72,3 @@ jobs:
 
       - name: Deploy
         run: pwsh -NoLogo -NoProfile -File ./ops/deploy.ps1
-"@
-Set-Content .github\workflows\deploy.yml -Encoding utf8 -Value $yml
