@@ -1,37 +1,61 @@
 ﻿name: Deploy WWTC Mumbai
+
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
+      id-token: write         # needed for OIDC -> assume AWS role
+      contents: read          # read repo
+
+    env:
+      AWS_REGION: ap-south-1  # single source of truth for region
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with: { node-version: '18' }
-      - name: Install awscli & powershell
+
+      - name: Install awscli & PowerShell
         run: |
           sudo apt-get update
           sudo apt-get install -y awscli powershell
+
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::965276659689:role/GHActionsDeployRole
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
+
+      # === Diagnostics: show which identity the runner has in AWS ===
+      - name: Who am I in AWS?
+        run: |
+          aws sts get-caller-identity
+          aws iam get-role --role-name GHActionsDeployRole || true
+
+      # === Prepare the same payload you used locally ===
       - name: Smoke payload
         run: |
           cat > invoke_event_body.json <<'JSON'
           {
-            "pathParameters": { "serviceCode": "ttt", "sourceLanguageCode": "en-US", "targetLanguageCode": "es-ES" },
+            "pathParameters": {
+              "serviceCode": "ttt",
+              "sourceLanguageCode": "en-US",
+              "targetLanguageCode": "es-ES"
+            },
             "queryStringParameters": null,
             "httpMethod": "POST",
             "body": "{\"text\":\"hello world\"}",
             "headers": { "Content-Type": "application/json" }
           }
           JSON
+
+      # === Deploy using your script (no --profile in CI) ===
       - name: Deploy
         shell: pwsh
         run: ./ops/deploy.ps1
