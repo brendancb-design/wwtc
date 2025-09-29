@@ -17,17 +17,13 @@ jobs:
         with:
           node-version: '18'
 
-      # Install AWS CLI (official)
+      # Install AWS CLI (official action)
       - name: Setup AWS CLI
-        uses: aws-actions/setup-cli@v2
-        with:
-          cli: aws
+        uses: aws-actions/setup-aws-cli@v4
 
-      # Install PowerShell 7
+      # Install PowerShell 7 (official action; default latest is fine)
       - name: Setup PowerShell
-        uses: actions/setup-powershell@v2
-        with:
-          powershell-version: '7.4.x'
+        uses: PowerShell/actions-setup-powershell@v2
 
       # Assume your deploy role via OIDC
       - name: Configure AWS (OIDC)
@@ -36,8 +32,12 @@ jobs:
           role-to-assume: arn:aws:iam::965276659689:role/GHActionsDeployRole
           aws-region: ap-south-1
 
+      # Quick diagnostics
       - name: Who am I in AWS?
-        run: aws sts get-caller-identity
+        run: |
+          aws --version
+          pwsh -v
+          aws sts get-caller-identity
 
       - name: Smoke payload
         run: |
