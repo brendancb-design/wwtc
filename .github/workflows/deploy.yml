@@ -42,7 +42,16 @@ jobs:
           pwsh -v
 
       # OIDC: assume your deploy role (this action has been resolving fine)
-      - name: Configure AWS (OIDC)
+            - name: Show OIDC token claims (debug)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const core = require('@actions/core');
+            const id = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(Buffer.from(id.split('.')[1], 'base64').toString());
+            console.log('OIDC aud:', payload.aud);
+            console.log('OIDC sub:', payload.sub);
+- name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::965276659689:role/GHActionsDeployRole
@@ -69,3 +78,4 @@ jobs:
       - name: Deploy
         shell: bash
         run: pwsh -NoLogo -NoProfile -File ./ops/deploy.ps1
+
