@@ -4,7 +4,11 @@
   [string]$Profile = "default"
 )
 
-# robust script dir: works when invoked from anywhere
+# Build conditional AWS CLI args: omit --profile in CI (OIDC env present)
+$AwsProfileArgs = @()
+if (-not ($env:AWS_WEB_IDENTITY_TOKEN_FILE -or $env:AWS_ROLE_ARN -or $env:AWS_ACCESS_KEY_ID)) {
+  $AwsProfileArgs = @("--profile", $Profile)
+}# robust script dir: works when invoked from anywhere
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $ScriptDir) { $ScriptDir = (Get-Location).Path }        # fallback for consoles
 $Root = (Resolve-Path "$ScriptDir\..").Path
@@ -19,22 +23,23 @@ node (Join-Path $Root 'syntax_check.js') $App
 # 2) Build & deploy
 if (Test-Path $Zip) { Remove-Item $Zip -Force }
 Compress-Archive -Path (Join-Path $Src '*') -DestinationPath $Zip -Force
-aws lambda update-function-code --function-name $FnName --zip-file fileb://$Zip --region $Region --profile $Profile | Out-Null
+aws lambda update-function-code --function-name $FnName --zip-file fileb://$Zip --region $Region $AwsProfileArgs | Out-Null
 
 # 3) Force cold start
 $envFile = Join-Path $env:TEMP 'lambda-env.json'
-$varsJson = aws lambda get-function-configuration --function-name $FnName --region $Region --profile $Profile --query 'Environment.Variables' --output json
+$varsJson = aws lambda get-function-configuration --function-name $FnName --region $Region $AwsProfileArgs --query 'Environment.Variables' --output json
 $varsObj  = $varsJson | ConvertFrom-Json
 $ht=@{}; if ($varsObj){ $varsObj.psobject.Properties | % { $ht[$_.Name]=$_.Value } }
 $ht['CONFIG_BUMP'] = (Get-Date -Format o)
 @{ Variables = $ht } | ConvertTo-Json -Depth 5 | Out-File $envFile -Encoding ascii -NoNewline
-aws lambda update-function-configuration --function-name $FnName --region $Region --profile $Profile --environment file://$envFile | Out-Null
+aws lambda update-function-configuration --function-name $FnName --region $Region $AwsProfileArgs --environment file://$envFile | Out-Null
 
 # 4) Smoke test
 $payload = Join-Path $Root 'invoke_event_body.json'
 $out     = Join-Path $Root 'invoke_out_body.json'
-$logB64 = aws lambda invoke --function-name $FnName --region $Region --profile $Profile --cli-binary-format raw-in-base64-out --log-type Tail --payload file://$payload $out --query LogResult --output text
+$logB64 = aws lambda invoke --function-name $FnName --region $Region $AwsProfileArgs --cli-binary-format raw-in-base64-out --log-type Tail --payload file://$payload $out --query LogResult --output text
 $resp = Get-Content $out | ConvertFrom-Json
 if ($resp.statusCode -ne 200) { throw "Smoke test failed: $($resp | ConvertTo-Json -Depth 5)" }
 
 "Deploy OK. Result: $(Get-Content $out)"
+
