@@ -1,0 +1,9 @@
+﻿{
+  "name": "wwtc",
+  "private": true,
+  "scripts": {
+    "check": "node syntax_check.js src/app.js",
+    "deploy": "pwsh -ExecutionPolicy Bypass ./ops/deploy.ps1",
+    "health": "pwsh -ExecutionPolicy Bypass ./ops/health.ps1"
+  }
+}
