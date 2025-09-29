@@ -1,0 +1,13 @@
+{
+    "body":  "{\"text\":\"hello world\"}",
+    "queryStringParameters":  null,
+    "pathParameters":  {
+                           "targetLanguageCode":  "es-ES",
+                           "sourceLanguageCode":  "en-US",
+                           "serviceCode":  "ttt"
+                       },
+    "headers":  {
+                    "Content-Type":  "application/json"
+                },
+    "httpMethod":  "POST"
+}
